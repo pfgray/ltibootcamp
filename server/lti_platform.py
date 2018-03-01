@@ -9,6 +9,14 @@ platform = LTIPlatform('http://localhost:5000')
 app = Flask(__name__)
 course_by_tool = {}
 
+def jsonify_tool(tool):
+    return {
+        'name': tool.name,
+        'client_id': tool.client_id,
+        'deployment_id': tool.deployment_id,
+        'webkey': tool.key['webkey'],
+        'webkeyPem': tool.key['key'].exportKey().decode('utf-8')
+    }
 
 @app.route('/assets/<path:path>')
 def send_js(path):
@@ -24,7 +32,8 @@ def keyset():
 
 @app.route("/newtool")
 def newtool():
-    tool = platform.new_tool()
+    args = request.args
+    tool = platform.new_tool(args['name'])
     platform.url = request.url_root
     course_by_tool[tool.client_id] = platform.new_course()
     return jsonify({
@@ -32,6 +41,13 @@ def newtool():
         'deployment_id': tool.deployment_id,
         'webkey': tool.key['webkey'],
         'webkeyPem': tool.key['key'].exportKey().decode('utf-8')
+    })
+
+@app.route("/tools")
+def tools():
+    tools = list(map(jsonify_tool, platform.get_tools()))
+    return jsonify({
+      'tools': tools
     })
 
 @app.route("/tool/<tool_id>/cisr")
@@ -55,8 +71,8 @@ def content_item_return(context_id):
     encoded_jwt = request.form['jws_token']
     unverified = jwt.decode(encoded_jwt, verify=False)
     tool = platform.get_tool(unverified['iss'])
-    deep_linking_res = jwt.decode(encoded_jwt, 
-       key=tool.getPublicKey().exportKey(), 
+    deep_linking_res = jwt.decode(encoded_jwt,
+       key=tool.getPublicKey().exportKey(),
        algorithms=['RS256'],
        audience=request.url_root.rstrip('/'))
     if ('http://imsglobal.org/lti/content_items' in deep_linking_res):
@@ -71,10 +87,10 @@ def student_launch(tool_id, context_id):
     rlid = request.args.get('rlid', '' )
     rlid = rlid if rlid else course.getOneGradableLinkId()
     resource_link = course.getResourceLink(rlid)
-    return platform.get_tool(tool_id).token('LTIResourceLinkLaunch', 
-                                            course, 
-                                            course.roster.getOneStudent(), 
-                                            {}, 
+    return platform.get_tool(tool_id).token('LTIResourceLinkLaunch',
+                                            course,
+                                            course.roster.getOneStudent(),
+                                            {},
                                             request.url_root,
                                             request_url=request.url_root,
                                             resource_link=resource_link)
@@ -99,11 +115,11 @@ def get_access_token():
     assertion_jwt = request.form['client_assertion']
     client_id = jwt.decode(assertion_jwt, verify=False)['iss']
     tool = platform.get_tool(client_id)
-    jwt.decode(assertion_jwt, 
-               tool.getPublicKey().exportKey(), 
+    jwt.decode(assertion_jwt,
+               tool.getPublicKey().exportKey(),
                algorithms=['RS256'],
                audience='{0}/auth/token'.format(request.url_root.rstrip('/')))
-    
+
     access_token = new_token(client_id, request.form['scope'])
     return jsonify({
         "access_token" : access_token.id,

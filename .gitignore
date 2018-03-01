@@ -4,3 +4,4 @@ __pycache__/
 .ipynb_checkpoints/
 .py3envs/
 notes.txt
+node_modules

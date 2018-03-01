@@ -1,0 +1,21 @@
+.nav-item > img {
+  height: 40px;
+  padding: 5px;
+}
+
+
+.creds {
+  display: flex;
+  flex: 1;
+  justify-content: flex-end;
+}
+.creds > svg {
+  cursor: pointer;
+}
+
+pre {
+  background-color: #eee;
+  padding: 1em;
+  border-radius: 0.5em;
+  border: 1px solid #ddd;
+}

@@ -3,16 +3,17 @@ from copy import copy
 from keys.keys_manager import get_client_key, keys, get_keyset
 import jwt
 import uuid
-from course.course_manager import Course 
+from course.course_manager import Course
 from random import randrange
 
 class Tool(object):
 
-    def __init__(self, platform, client_id):
+    def __init__(self, platform, client_id, name):
         self.client_id = client_id
         self.deployment_id = "deployment_" + str(client_id)
         self.key = get_client_key()
         self.platform = platform
+        self.name = name
 
     def getPublicKey(self):
         return self.key['key'].publickey()
@@ -42,17 +43,17 @@ class Tool(object):
                         "http://imsglobal.org/ags/result/read",
                         "http://imsglobal.org/ags/score/publish",
                         ],
-            'lineitems': '{0}/{1}/lineitems'.format(root_url, course.id) 
+            'lineitems': '{0}/{1}/lineitems'.format(root_url, course.id)
         }
         message = member.addToMessage(message)
         message = course.addToMessage(message)
-        
+
         if resource_link:
             message = resource_link.addToMessage(message)
             if resource_link.lineitem:
                 ags_claim['lineitem'] = '{0}/{1}/lineitems/{2}/lineitem'.format(root_url, course.id, resource_link.lineitem.id)
 
-        message['http://imsglobal.org/lti/ags'] = ags_claim     
+        message['http://imsglobal.org/lti/ags'] = ags_claim
         message = self.platform.addToMessage(message)
         return jwt.encode(message, privatekey, algorithm='RS256', headers={'kid':key[0]})
 
@@ -67,7 +68,10 @@ class LTIPlatform(object):
         self.url = url
         self.courses = {}
         self.tools = []
-    
+
+    def get_tools(self):
+        return self.tools
+
     def addToMessage(self, msg):
         updated = copy(msg)
         updated['http://imsglobal.org/lti/tool_platform'] = {
@@ -78,13 +82,13 @@ class LTIPlatform(object):
 
     def get_keyset(self):
         return get_keyset()
-    
+
     def get_tool(self, tool_id):
         return next(t for t in self.tools if t.client_id == tool_id)
 
-    def new_tool(self):
+    def new_tool(self, name):
         client_id = str(len(self.tools))
-        tool = Tool(self, client_id)
+        tool = Tool(self, client_id, name)
         self.tools.append(tool)
         return tool
 

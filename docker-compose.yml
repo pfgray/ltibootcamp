@@ -3,10 +3,26 @@ services:
   tool:
     build: ./jupyter
     ports:
-     - "13000:8888"
+      - "13000:8888"
   platform:
     build: ./server
     environment:
-     - FLASK_APP=lti_platform.py
+      - FLASK_APP=lti_platform.py
+      - FLASK_DEBUG=1
     ports:
-     - "12000:5000"
+      - "12000:5000"
+    expose:
+      - "5000"
+    volumes:
+      # Specify an absolute path mapping
+      - ./server:/app
+  platform-ui:
+    build: ./server-frontend
+    expose:
+      - "3000"
+    volumes:
+      - ./server-frontend:/app
+  nginx:
+    build: ./nginx
+    ports:
+      - "9002:5000"
